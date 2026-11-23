@@ -1,0 +1,49 @@
+name: Mi Portafolio - pruebas
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unitarias, integración y E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v5
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Iniciar Supabase de pruebas
+        run: npm run db:start
+      - name: Aplicar migraciones y datos de prueba
+        run: npm run db:migrate
+      - name: Preparar variables locales
+        run: npm run local:setup
+      - name: Comprobar tipos y compilar
+        run: npm run typecheck && npm run build
+      - name: Pruebas unitarias
+        run: npm run test:unit
+      - name: Pruebas de integración
+        run: npm run test:integration
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Pruebas E2E
+        run: npm run test:e2e
+      - name: Guardar evidencias E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
