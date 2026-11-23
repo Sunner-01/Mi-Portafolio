@@ -34,6 +34,7 @@
         update_cache: true
         cache_valid_time: 3600
         state: present
+        lock_timeout: 300
 
     - name: Crear directorio de claves APT
       ansible.builtin.file:
@@ -52,6 +53,10 @@
         repo: 'deb [arch={{ docker_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable'
         filename: docker
         state: present
+      register: docker_repository
+      until: docker_repository is succeeded
+      retries: 10
+      delay: 15
 
     - name: Instalar Docker Engine y Compose
       ansible.builtin.apt:
@@ -63,6 +68,7 @@
           - docker-compose-plugin
         state: present
         update_cache: true
+        lock_timeout: 300
 
     - name: Iniciar Docker al arrancar
       ansible.builtin.service:
